@@ -62,3 +62,8 @@ npm run build
 ## License
 
 [MIT](LICENSE)
+
+## 打赏...如果有闲钱的话...谢谢！！！
+
+<img width="1130" height="1694" alt="8aeb4b70f663454619eb415d01e462a7" src="https://github.com/user-attachments/assets/89efb52d-0c8b-4f81-9c1e-dbb22787bc09" />
+<img width="1251" height="1704" alt="d2b2d4318feb525294c2200a18b82f60" src="https://github.com/user-attachments/assets/d90c116a-9c5b-40c7-a2c9-6af40453a432" />
