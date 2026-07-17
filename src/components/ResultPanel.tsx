@@ -16,7 +16,7 @@ const VIEWS: { key: ViewKey; label: string; desc: string }[] = [
   { key: 'best', label: '最优解', desc: '三策略中适应度最高' },
   { key: 'balancedNoDup', label: '配平不重复', desc: '效率≥95% + 零重复' },
   { key: 'balancedDup', label: '配平可重复', desc: '效率≥95%' },
-  { key: 'looseNoDup', label: '非配平不重复', desc: '重量差≤3 + 零重复' },
+  { key: 'looseNoDup', label: '非配平不重复', desc: '重量差≤1 + 零重复' },
 ]
 
 function ItemChip({ it, side, allItems, onReplace }: { it: Item; side: 'left' | 'right'; allItems: Item[]; onReplace: Props['onReplace'] }) {

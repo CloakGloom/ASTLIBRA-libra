@@ -30,14 +30,29 @@ export function ItemLibrary({ items, saveItemIds, onlySaveItems, onOnlySaveChang
   const [open, setOpen] = useState(false)
   const [form] = Form.useForm()
   const [filterSave, setFilterSave] = useState(true)
+  const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState<string[]>([])
 
-  // 筛选：全物品 or 仅存档物品
+  // 筛选：全物品 or 仅存档物品 → 搜索过滤
   const displayed = useMemo(() => {
-    if (!filterSave || saveItemIds.size === 0) return items
-    return items.filter((it) => saveItemIds.has(it.id))
-  }, [items, filterSave, saveItemIds])
+    let list = items
+    if (filterSave && saveItemIds.size > 0) list = list.filter((it) => saveItemIds.has(it.id))
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      list = list.filter((it) =>
+        it.name.toLowerCase().includes(q) ||
+        it.effects.some((e) => e.name.toLowerCase().includes(q))
+      )
+    }
+    return list
+  }, [items, filterSave, saveItemIds, search])
 
   const remove = (id: string) => onChange(items.filter((it) => it.id !== id))
+  const removeSelected = () => {
+    const set = new Set(selected)
+    onChange(items.filter((it) => !set.has(it.id)))
+    setSelected([])
+  }
 
   const toggleLock = (id: string, locked: boolean) => {
     onChange(items.map((it) => (it.id === id ? { ...it, isLocked: locked } : it)))
@@ -140,9 +155,23 @@ export function ItemLibrary({ items, saveItemIds, onlySaveItems, onOnlySaveChang
           </Button>
         </Space>
       </div>
+      <Input
+        size="small"
+        placeholder="搜索道具名或词条…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        allowClear
+        style={{ marginBottom: 8 }}
+      />
+      {selected.length > 0 && (
+        <Button size="small" danger style={{ marginBottom: 8 }} onClick={removeSelected}>
+          删除选中（{selected.length}）
+        </Button>
+      )}
       <Table
         size="small"
         rowKey="id"
+        rowSelection={{ selectedRowKeys: selected, onChange: (keys) => setSelected(keys as string[]) }}
         columns={columns as any}
         dataSource={displayed}
         pagination={false}

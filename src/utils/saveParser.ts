@@ -57,20 +57,16 @@ function parseAlbrSav(dv: DataView): ParsedSave {
   }
 
   // 道具: 三通道合并扫描（uint8 + uint16 + uint32）
-  // 游戏道具编号范围 1-253（>202 的编号对应数据库 i136-i186 等偏移道具）
   const ITEM_MAX = 253
   const itemAll = new Set<number>()
-  // uint8 通道：单字节道具编号
   for (let i = 0; i < dv.byteLength; i++) {
     const v = dv.getUint8(i)
     if (v >= 1 && v <= ITEM_MAX) itemAll.add(v)
   }
-  // uint16 通道：双字节道具编号
   for (let i = 0; i < dv.byteLength - 2; i += 2) {
     const v = dv.getUint16(i, true)
     if (v >= 1 && v <= ITEM_MAX && (v >>> 8) !== 1) itemAll.add(v)
   }
-  // uint32 通道：四字节道具编号（排除饰品编码 0x01XX）
   for (let i = 0; i < dv.byteLength; i += 4) {
     const v = dv.getUint32(i, true)
     if (v >= 1 && v <= ITEM_MAX && !isAccessory(v)) itemAll.add(v)

@@ -63,6 +63,4 @@ npm run build
 
 [MIT](LICENSE)
 
-## 打赏
-来b站捧个场就好了，谢谢！
-[Bilibili](https://space.bilibili.com/199190474)
+## 打赏...如果有闲钱的话...谢谢！！！

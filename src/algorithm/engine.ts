@@ -26,7 +26,9 @@ function applyRules(leftItems: Item[], rightItems: Item[], constraints: Constrai
   const usedR = new Set<number>()
   for (const le of left) { const idx = right.findIndex((re, i) => !usedR.has(i) && re.id === le.id && re.grade === le.grade); if (idx >= 0) { usedR.add(idx); le.cancelled = true; right[idx].cancelled = true } }
   const keepMax = (side: WorkEffect[]) => {
-    const g = new Map<string, WorkEffect[]>(); for (const e of side) { if (e.cancelled) continue; const k = `${e.category}_${e.grade}`; if (!g.has(k)) g.set(k, []); g.get(k)!.push(e) }
+    const g = new Map<string, WorkEffect[]>(); for (const e of side) {
+      const k = `${e.category}_${e.grade}`; if (!g.has(k)) g.set(k, []); g.get(k)!.push(e)
+    }
     for (const arr of g.values()) { if (arr.length <= 1) continue; let max = arr[0]; for (const e of arr) if (e.value > max.value) max = e; for (const e of arr) if (e !== max) { e.effective = 0; e.duplicate = true } }
   }; keepMax(left); keepMax(right); return { left, right }
 }
@@ -206,7 +208,7 @@ export function findBestCombination(
     if (Date.now() - t0 > 4000) break
     const lCombos = combosForK(freeItems, freeL, lt - lockSumL, pairsBySum, singlesBySum)
     if (!lCombos.length) continue
-    for (let offset = 1; offset <= 3; offset++) {
+    for (let offset = 1; offset <= 1; offset++) {
       for (const sign of [1, -1]) {
         const rt = lt + offset * sign; if (rt < 0) continue
         const rCombos = combosForK(freeItems, freeR, rt - lockSumR, pairsBySum, singlesBySum)
