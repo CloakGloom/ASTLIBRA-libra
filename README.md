@@ -34,6 +34,10 @@ npm run dev
 # 生产构建
 npm run build
 ```
+##或
+```
+双击start.bat
+```
 
 ## 数据来源
 
