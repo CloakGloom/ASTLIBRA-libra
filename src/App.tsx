@@ -22,6 +22,8 @@ const DEFAULT_PREFS: UserPreferences = {
   leftSlots: 4,
   rightSlots: 4,
   totalSlots: 8,
+  highScalesLeft: 0,
+  highScalesRight: 0,
 }
 
 const DEFAULT_CONSTRAINTS: Constraints = {

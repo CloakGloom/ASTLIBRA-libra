@@ -139,10 +139,11 @@ body,
   border-color: var(--accent);
 }
 
-.grade-0 { color: #d0d3d8; }
-.grade-1 { color: #ffd23f; }
-.grade-2 { color: #ff5b5b; }
-.grade-3 { color: #46d369; }
+.grade-0 { color: #d0d3d8; } /* 白 */
+.grade-1 { color: #46d369; } /* 绿 */
+.grade-2 { color: #ffd23f; } /* 黄 */
+.grade-3 { color: #ff5b5b; } /* 红 */
+.grade-4 { color: #39d0d8; } /* 青 */
 
 .higher {
   color: var(--good);

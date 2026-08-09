@@ -205,7 +205,7 @@ export function ItemLibrary({ items, saveItemIds, onlySaveItems, onOnlySaveChang
                       <Select
                         placeholder="等级"
                         style={{ width: 70 }}
-                        options={([0, 1, 2, 3] as Grade[]).map((g) => ({
+                        options={([0, 1, 2, 3, 4] as Grade[]).map((g) => ({
                           value: g,
                           label: GRADE_LABELS[g],
                         }))}

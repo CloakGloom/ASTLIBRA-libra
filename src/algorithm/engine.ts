@@ -19,26 +19,70 @@ export function scoreItem(item: Item, weights: Weights, constraints: Constraints
 // ---- 冲突规则 ----
 interface WorkEffect extends Effect { cancelled?: boolean; duplicate?: boolean; effective: number; sourceName: string; sourceLocked: boolean }
 
-function applyRules(leftItems: Item[], rightItems: Item[], constraints: Constraints) {
+// 选择放置在高级天平上的道具：
+// 优先挑选「其白条会被对侧白条抵消」的道具（升级为青条后不再抵消，收益最大），
+// 其次按白条数量多少排序。最多 hCount 个。
+function chooseHighScaleItems(sideItems: Item[], otherItems: Item[], hCount: number): Set<string> {
+  if (hCount <= 0) return new Set()
+  const otherWhiteIds = new Set<string>()
+  for (const it of otherItems) for (const ef of it.effects) if (ef.grade === Grade.White) otherWhiteIds.add(ef.id)
+  const candidates = sideItems.filter(it => it.effects.some(ef => ef.grade === Grade.White))
+  candidates.sort((a, b) => {
+    const sa = a.effects.filter(e => e.grade === Grade.White && otherWhiteIds.has(e.id)).length
+    const sb = b.effects.filter(e => e.grade === Grade.White && otherWhiteIds.has(e.id)).length
+    if (sb !== sa) return sb - sa
+    const ta = a.effects.filter(e => e.grade === Grade.White).length
+    const tb = b.effects.filter(e => e.grade === Grade.White).length
+    return tb - ta
+  })
+  return new Set(candidates.slice(0, hCount).map(it => it.id))
+}
+
+function applyRules(
+  leftItems: Item[], rightItems: Item[], constraints: Constraints,
+  hsl = 0, hsr = 0,
+) {
+  // 高级天平：放在高级天平上的白条（最低品质）升级为青条（最高品质），数值不变
+  const upL = chooseHighScaleItems(leftItems, rightItems, hsl)
+  const upR = chooseHighScaleItems(rightItems, leftItems, hsr)
+  const mapItem = (it: Item, up: boolean): Item =>
+    up ? { ...it, effects: it.effects.map(e => e.grade === Grade.White ? { ...e, grade: Grade.Cyan } : e) } : it
+
   const act = (item: Item): WorkEffect[] => item.effects.filter(e => !disabled(e.grade, constraints))
     .map(e => ({ ...e, effective: e.value, sourceName: item.name, sourceLocked: !!item.isLocked }))
-  let left = leftItems.flatMap(act), right = rightItems.flatMap(act)
+  let left = leftItems.map(it => mapItem(it, upL.has(it.id))).flatMap(act)
+  let right = rightItems.map(it => mapItem(it, upR.has(it.id))).flatMap(act)
+
+  // 左右对称抵消：同类(id)同品质(grade)才抵消
   const usedR = new Set<number>()
-  for (const le of left) { const idx = right.findIndex((re, i) => !usedR.has(i) && re.id === le.id && re.grade === le.grade); if (idx >= 0) { usedR.add(idx); le.cancelled = true; right[idx].cancelled = true } }
-  const keepMax = (side: WorkEffect[]) => {
-    // 按 category 分组（游戏同侧只取同类最高值）
+  for (const le of left) {
+    const idx = right.findIndex((re, i) => !usedR.has(i) && re.id === le.id && re.grade === le.grade)
+    if (idx >= 0) { usedR.add(idx); le.cancelled = true; right[idx].cancelled = true }
+  }
+
+  // 同侧同品类：优先保留品质最高的词条；品质相同再比数值（数字不变）
+  const keepBest = (side: WorkEffect[]) => {
     const g = new Map<Category, WorkEffect[]>()
     for (const e of side) {
       if (!g.has(e.category)) g.set(e.category, []); g.get(e.category)!.push(e)
     }
-    for (const arr of g.values()) { if (arr.length <= 1) continue; let max = arr[0]; for (const e of arr) if (e.value > max.value) max = e; for (const e of arr) if (e !== max) { e.effective = 0; e.duplicate = true } }
-  }; keepMax(left); keepMax(right); return { left, right }
+    for (const arr of g.values()) {
+      if (arr.length <= 1) continue
+      let best = arr[0]
+      for (const e of arr) {
+        if (e.grade > best.grade || (e.grade === best.grade && e.value > best.value)) best = e
+      }
+      for (const e of arr) if (e !== best) { e.effective = 0; e.duplicate = true }
+    }
+  }
+  keepBest(left); keepBest(right)
+  return { left, right }
 }
 function toInfo(eff: WorkEffect): ActiveEffectInfo {
   return { id: eff.id, name: eff.name, grade: eff.grade, value: eff.value, category: eff.category, sourceItem: eff.sourceName, sourceLocked: eff.sourceLocked, cancelled: !!eff.cancelled, duplicate: !!eff.duplicate }
 }
-function computeAll(leftItems: Item[], rightItems: Item[], constraints: Constraints) {
-  const { left, right } = applyRules(leftItems, rightItems, constraints)
+function computeAll(leftItems: Item[], rightItems: Item[], constraints: Constraints, hsl = 0, hsr = 0) {
+  const { left, right } = applyRules(leftItems, rightItems, constraints, hsl, hsr)
   const net: Record<Category, number> = { ATK:0,DEF:0,SPD:0,DURATION:0,MAG:0,STA_MAX:0,FOC_MAX:0,MP_GAIN:0,HP_RGN:0,SLOW_RGN:0,BLK_DUR:0,WGT_RED:0,EXP_GAIN:0,GOLD_GAIN:0,BLD_RES:0,PARA_RES:0,STONE_RES:0,BLIND_RES:0,PSN_RES:0,ADP:0 }
   let cc = 0, dc = 0
   for (const e of left) { if (e.cancelled) cc++; else net[e.category] += e.effective; if (e.duplicate) dc++ }
@@ -125,11 +169,14 @@ function buildResult(
   const lItems = [...lockL, ...leftIdx.map(i => freeItems[i])]
   const rItems = [...lockR, ...rightIdx.map(i => freeItems[i])]
   if (lItems.length !== leftSlots || rItems.length !== rightSlots) return null
-  const { net, cc, dc, lw, rw, eff, left, right } = computeAll(lItems, rItems, constraints)
+  // 高级天平数量受槽位数限制；超出部分无效
+  const hsl = Math.max(0, Math.min(prefs.highScalesLeft ?? 0, leftSlots))
+  const hsr = Math.max(0, Math.min(prefs.highScalesRight ?? 0, rightSlots))
+  const { net, cc, dc, lw, rw, eff } = computeAll(lItems, rItems, constraints, hsl, hsr)
   let pf = 0; for (const cat of Object.keys(net) as Category[]) pf += net[cat] * wgt(cat, prefs.weights)
   const fit = pf + (lw + rw) * 0.5
   const radar: RadarStats = { attack:net.ATK, defense:net.DEF, speed:net.SPD, duration:net.DURATION, magic:net.MAG, staminaMax:net.STA_MAX, focusMax:net.FOC_MAX, mpGain:net.MP_GAIN }
-  const { left: le, right: re } = applyRules(lItems, rItems, constraints)
+  const { left: le, right: re } = applyRules(lItems, rItems, constraints, hsl, hsr)
   return { left: lItems, right: rItems, net, radar, efficiency: eff, preferenceScore: pf, fitness: fit, cancelledCount: cc, duplicateCount: dc, leftWeight: lw, rightWeight: rw, leftEffects: le.map(toInfo), rightEffects: re.map(toInfo) }
 }
 

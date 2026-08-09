@@ -10,7 +10,10 @@ interface Props {
 // 天平槽位容量动态控制（偏好面板最顶部显眼位置）
 export function SlotConfig({ prefs, onChange }: Props) {
   const setSlots = (leftSlots: number, rightSlots: number) => {
-    onChange({ ...prefs, leftSlots, rightSlots, totalSlots: leftSlots + rightSlots })
+    // 槽位变化时同步收敛高级天平数量，避免超出新槽位数
+    const hsl = Math.min(prefs.highScalesLeft ?? 0, leftSlots)
+    const hsr = Math.min(prefs.highScalesRight ?? 0, rightSlots)
+    onChange({ ...prefs, leftSlots, rightSlots, totalSlots: leftSlots + rightSlots, highScalesLeft: hsl, highScalesRight: hsr })
   }
 
   return (
@@ -48,6 +51,26 @@ export function SlotConfig({ prefs, onChange }: Props) {
           onChange={(v) => setSlots(prefs.leftSlots, v ?? 1)}
         />
         <span className="total-badge">总计：{prefs.totalSlots} 个</span>
+      </div>
+
+      <div className="slot-row" style={{ marginTop: 10 }}>
+        <span>左盘高级天平</span>
+        <InputNumber
+          min={0}
+          max={prefs.leftSlots}
+          value={prefs.highScalesLeft ?? 0}
+          onChange={(v) => onChange({ ...prefs, highScalesLeft: Math.min(v ?? 0, prefs.leftSlots) })}
+        />
+        <span>右盘高级天平</span>
+        <InputNumber
+          min={0}
+          max={prefs.rightSlots}
+          value={prefs.highScalesRight ?? 0}
+          onChange={(v) => onChange({ ...prefs, highScalesRight: Math.min(v ?? 0, prefs.rightSlots) })}
+        />
+      </div>
+      <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-dim)' }}>
+        高级天平上的白条（最低品质）会升级为青条（最高品质），数值不变；其它品质不受影响。
       </div>
 
       <div style={{ marginTop: 8 }}>

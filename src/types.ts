@@ -1,11 +1,13 @@
 // ===== 一、数据层类型定义 =====
 
-// 1. 词条等级枚举
+// 1. 词条等级枚举（低→高）：白 < 绿 < 黄 < 红 < 青
+// 游戏后期可升级天平：放在高级天平上的白条会升级为青条（数值不变）
 export enum Grade {
   White = 0,
-  Yellow = 1,
-  Red = 2,
-  Green = 3,
+  Green = 1,
+  Yellow = 2,
+  Red = 3,
+  Cyan = 4,
 }
 
 // 词条类别（扩展为 19 维，覆盖全部真实道具效果）
@@ -80,6 +82,8 @@ export interface UserPreferences {
   leftSlots: number // 左侧槽位数（默认4）
   rightSlots: number // 右侧槽位数（默认4）
   totalSlots: number // 只读，自动计算 leftSlots + rightSlots
+  highScalesLeft?: number // 左盘高级天平数量（白条升级为青条）
+  highScalesRight?: number // 右盘高级天平数量（白条升级为青条）
 }
 
 // 硬性约束开关
@@ -91,9 +95,19 @@ export interface Constraints {
 
 export const GRADE_LABELS: Record<Grade, string> = {
   [Grade.White]: '白',
+  [Grade.Green]: '绿',
   [Grade.Yellow]: '黄',
   [Grade.Red]: '红',
-  [Grade.Green]: '绿',
+  [Grade.Cyan]: '青',
+}
+
+// 各品质配色（用于词条展示）
+export const GRADE_COLORS: Record<Grade, string> = {
+  [Grade.White]: '#d0d3d8',
+  [Grade.Green]: '#46d369',
+  [Grade.Yellow]: '#ffd23f',
+  [Grade.Red]: '#ff5b5b',
+  [Grade.Cyan]: '#39d0d8',
 }
 
 export const CATEGORY_LABELS: Record<Category, string> = {

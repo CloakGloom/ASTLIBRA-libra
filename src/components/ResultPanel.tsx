@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button, Dropdown, Empty, Space, Table, Tag, Tooltip } from 'antd'
 import { ComboResult, ActiveEffectInfo } from '../algorithm/types'
-import { Category, CATEGORY_LABELS, Item } from '../types'
+import { Category, CATEGORY_LABELS, Item, Grade, GRADE_LABELS, GRADE_COLORS } from '../types'
 import { RadarChart } from './RadarChart'
 
 interface Props {
@@ -52,36 +52,27 @@ function buildEffectRows(left: ActiveEffectInfo[], right: ActiveEffectInfo[]) {
   return rows
 }
 
+// 词条效果渲染：按品质着色，升级为青条时显著区别于白条
+const renderEffect = (e?: ActiveEffectInfo, conflict = false) => {
+  if (!e) return <span style={{ color: 'var(--text-dim)', fontSize: 10 }}>—</span>
+  const g = e.grade as Grade
+  const active = !e.cancelled && !e.duplicate
+  const color = !active ? '#666' : conflict ? '#ff4d4f' : GRADE_COLORS[g]
+  const tagStyle = { margin: 0, fontSize: 9, color: GRADE_COLORS[g], borderColor: GRADE_COLORS[g], background: 'transparent' } as const
+  return (
+    <Tooltip title={e.duplicate ? '同侧重复(失效)' : e.cancelled ? '被对侧抵消' : `来源：${e.sourceItem}｜品质：${GRADE_LABELS[g]}`}>
+      <span style={{ fontSize: 10, color, textDecoration: active ? 'none' : 'line-through' }}>
+        <span style={{ color: GRADE_COLORS[g], marginRight: 2 }}>{GRADE_LABELS[g]}</span>
+        {e.name} <Tag style={tagStyle}>+{e.value}</Tag>
+      </span>
+    </Tooltip>
+  )
+}
+
 const EFFECT_COLS = [
   { title: '类别', dataIndex: 'catCn', width: 70, render: (v: string) => <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{v}</span> },
-  {
-    title: '左盘效果', width: 140,
-    render: (_: any, row: any) => {
-      if (!row.left) return <span style={{ color: 'var(--text-dim)', fontSize: 10 }}>—</span>
-      const e = row.left as ActiveEffectInfo
-      return (
-        <Tooltip title={e.duplicate ? '同侧重复(失效)' : e.cancelled ? '被右盘抵消' : `来源：${e.sourceItem}`}>
-          <span style={{ fontSize: 10, color: e.cancelled ? '#666' : e.duplicate ? '#ff8c1a' : row.conflict ? '#ff4d4f' : 'var(--good)', textDecoration: e.cancelled || e.duplicate ? 'line-through' : 'none' }}>
-            {e.name} <Tag color={row.conflict ? 'red' : 'orange'} style={{ margin: 0, fontSize: 9 }}>+{e.value}</Tag>
-          </span>
-        </Tooltip>
-      )
-    },
-  },
-  {
-    title: '右盘效果', width: 140,
-    render: (_: any, row: any) => {
-      if (!row.right) return <span style={{ color: 'var(--text-dim)', fontSize: 10 }}>—</span>
-      const e = row.right as ActiveEffectInfo
-      return (
-        <Tooltip title={e.duplicate ? '同侧重复(失效)' : e.cancelled ? '被左盘抵消' : `来源：${e.sourceItem}`}>
-          <span style={{ fontSize: 10, color: e.cancelled ? '#666' : e.duplicate ? '#ff8c1a' : row.conflict ? '#ff4d4f' : 'var(--good)', textDecoration: e.cancelled || e.duplicate ? 'line-through' : 'none' }}>
-            {e.name} <Tag color={row.conflict ? 'red' : 'orange'} style={{ margin: 0, fontSize: 9 }}>+{e.value}</Tag>
-          </span>
-        </Tooltip>
-      )
-    },
-  },
+  { title: '左盘效果', width: 140, render: (_: any, row: any) => renderEffect(row.left, row.conflict) },
+  { title: '右盘效果', width: 140, render: (_: any, row: any) => renderEffect(row.right, row.conflict) },
 ]
 
 function getResult(view: ViewKey, results: ComboResult[]): ComboResult | undefined {
